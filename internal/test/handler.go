@@ -8,8 +8,14 @@ import (
 	"github.com/taurusgroup/multi-party-sig/pkg/protocol"
 )
 
+type HandlerInterface interface {
+	Update(*protocol.Message)
+	Listen() <-chan *protocol.Message
+	Result() (interface{}, error)
+}
+
 // HandlerLoop blocks until the handler has finished. The result of the execution is given by Handler.Result().
-func HandlerLoop(id party.ID, h *protocol.Handler, network *Network) {
+func HandlerLoop(id party.ID, h HandlerInterface, network *Network) {
 	log.Println(h, "start")
 	for {
 		select {

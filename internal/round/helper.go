@@ -117,23 +117,19 @@ func NewSession(info Info, sessionID []byte, pl *pool.Pool, auxInfo ...hash.Writ
 }
 
 // HashForID returns a clone of the hash.Hash for this session, initialized with the given id.
-func (h *Helper) HashForID(id party.ID) *hash.Hash {
+func (h *Helper) HashForID(id party.ID, updatedState ...hash.WriterToWithDomain) *hash.Hash {
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 
 	cloned := h.hash.Clone()
+	for _, d := range updatedState {
+		_ = cloned.WriteAny(d)
+	}
 	if id != "" {
 		_ = cloned.WriteAny(id)
 	}
 
 	return cloned
-}
-
-// UpdateHashState writes additional data to the hash state.
-func (h *Helper) UpdateHashState(value hash.WriterToWithDomain) {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
-	_ = h.hash.WriteAny(value)
 }
 
 // BroadcastMessage constructs a Message from the broadcast Content, and sets the header correctly.

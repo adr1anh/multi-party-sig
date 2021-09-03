@@ -68,8 +68,6 @@ func (h *Handler) Result() (interface{}, error) {
 // The message received should be _reliably_ broadcast if msg.Broadcast is true.
 // The channel is closed when either an error occurs or the protocol detects an error.
 func (h *Handler) Listen() <-chan *Message {
-	h.mtx.Lock()
-	defer h.mtx.Unlock()
 	return h.out
 }
 

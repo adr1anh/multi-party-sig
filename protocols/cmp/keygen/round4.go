@@ -40,7 +40,7 @@ type broadcast4 struct {
 
 // StoreBroadcastMessage implements round.BroadcastRound.
 //
-// - verify Mod, Prm proof for N
+// - verify Mod, Prm proof for N.
 func (r *round4) StoreBroadcastMessage(msg round.Message) error {
 	from := msg.From
 	body, ok := msg.Content.(*broadcast4)
@@ -49,12 +49,12 @@ func (r *round4) StoreBroadcastMessage(msg round.Message) error {
 	}
 
 	// verify zkmod
-	if !body.Mod.Verify(zkmod.Public{N: r.NModulus[from]}, r.HashForID(from), r.Pool) {
+	if !body.Mod.Verify(zkmod.Public{N: r.NModulus[from]}, r.HashForID(from, r.RID), r.Pool) {
 		return errors.New("failed to validate mod proof")
 	}
 
 	// verify zkprm
-	if !body.Prm.Verify(zkprm.Public{N: r.NModulus[from], S: r.S[from], T: r.T[from]}, r.HashForID(from), r.Pool) {
+	if !body.Prm.Verify(zkprm.Public{N: r.NModulus[from], S: r.S[from], T: r.T[from]}, r.HashForID(from, r.RID), r.Pool) {
 		return errors.New("failed to validate prm proof")
 	}
 	return nil
@@ -163,13 +163,7 @@ func (r *round4) Finalize(out chan<- *round.Message) (round.Session, error) {
 		ChainKey:  r.ChainKey.Copy(),
 		Public:    PublicData,
 	}
-
-	// write new ssid to hash, to bind the Schnorr proof to this new config
-	// Write SSID, selfID to temporary hash
-	h := r.Hash()
-	_ = h.WriteAny(UpdatedConfig, r.SelfID())
-
-	proof := r.SchnorrRand.Prove(h, PublicData[r.SelfID()].ECDSA, UpdatedSecretECDSA)
+	proof := r.SchnorrRand.Prove(r.HashForID(r.SelfID(), r.RID), PublicData[r.SelfID()].ECDSA, UpdatedSecretECDSA)
 
 	// send to all
 	err = r.BroadcastMessage(out, &broadcast5{SchnorrResponse: proof})
@@ -177,7 +171,6 @@ func (r *round4) Finalize(out chan<- *round.Message) (round.Session, error) {
 		return r, err
 	}
 
-	r.UpdateHashState(UpdatedConfig)
 	return &round5{
 		round4:        r,
 		UpdatedConfig: UpdatedConfig,

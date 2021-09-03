@@ -72,8 +72,8 @@ func (abort2) VerifyMessage(round.Message) error { return nil }
 // StoreMessage implements round.Round.
 func (abort2) StoreMessage(round.Message) error { return nil }
 
-// Finalize implements round.Round
-func (r *abort2) Finalize(chan<- *round.Message) (round.Session, error) {
+// IdentifyCulprits implements round.IdentifiableAbortRound.
+func (r *abort2) IdentifyCulprits() []party.ID {
 	var culprits []party.ID
 	for _, j := range r.OtherPartyIDs() {
 		// M = Ŷⱼ + kⱼ⋅Xⱼ
@@ -92,8 +92,12 @@ func (r *abort2) Finalize(chan<- *round.Message) (round.Session, error) {
 			culprits = append(culprits, j)
 		}
 	}
+	return culprits
+}
 
-	return r.AbortRound(errors.New("abort2: detected culprit"), culprits...), nil
+// Finalize implements round.Round.
+func (r *abort2) Finalize(chan<- *round.Message) (round.Session, error) {
+	return r.AbortRound(errors.New("abort2: detected culprit"), r.IdentifyCulprits()...), nil
 }
 
 // MessageContent implements round.Round.

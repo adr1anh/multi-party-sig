@@ -149,12 +149,8 @@ func (r *round3) Finalize(out chan<- *round.Message) (round.Session, error) {
 		rid.XOR(r.RIDs[j])
 	}
 
-	// temporary hash which does not modify the state
-	h := r.Hash()
-	_ = h.WriteAny(rid, r.SelfID())
-
 	// Prove N is a blum prime with zkmod
-	mod := zkmod.NewProof(h.Clone(), zkmod.Private{
+	mod := zkmod.NewProof(r.HashForID(r.SelfID(), rid), zkmod.Private{
 		P:   r.PaillierSecret.P(),
 		Q:   r.PaillierSecret.Q(),
 		Phi: r.PaillierSecret.Phi(),
@@ -166,7 +162,7 @@ func (r *round3) Finalize(out chan<- *round.Message) (round.Session, error) {
 		Phi:    r.PaillierSecret.Phi(),
 		P:      r.PaillierSecret.P(),
 		Q:      r.PaillierSecret.Q(),
-	}, h.Clone(), zkprm.Public{N: r.NModulus[r.SelfID()], S: r.S[r.SelfID()], T: r.T[r.SelfID()]}, r.Pool)
+	}, r.HashForID(r.SelfID(), rid), zkprm.Public{N: r.NModulus[r.SelfID()], S: r.S[r.SelfID()], T: r.T[r.SelfID()]}, r.Pool)
 
 	if err := r.BroadcastMessage(out, &broadcast4{
 		Mod: mod,
@@ -190,8 +186,6 @@ func (r *round3) Finalize(out chan<- *round.Message) (round.Session, error) {
 		}
 	}
 
-	// Write rid to the hash state
-	r.UpdateHashState(rid)
 	return &round4{
 		round3:   r,
 		RID:      rid,

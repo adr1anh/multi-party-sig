@@ -35,7 +35,7 @@ func (r *round5) StoreBroadcastMessage(msg round.Message) error {
 		return round.ErrNilFields
 	}
 
-	if !body.SchnorrResponse.Verify(r.HashForID(from),
+	if !body.SchnorrResponse.Verify(r.HashForID(from, r.RID),
 		r.UpdatedConfig.Public[from].ECDSA,
 		r.SchnorrCommitments[from]) {
 		return errors.New("failed to validate schnorr proof for received share")

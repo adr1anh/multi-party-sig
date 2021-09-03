@@ -2,6 +2,11 @@ package round
 
 import "github.com/taurusgroup/multi-party-sig/pkg/party"
 
+type IdentifiableAbortRound interface {
+	Round
+	IdentifyCulprits() []party.ID
+}
+
 // Abort is an empty round containing a list of parties who misbehaved.
 type Abort struct {
 	*Helper

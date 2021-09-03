@@ -7,7 +7,6 @@ import (
 	"reflect"
 
 	"github.com/fxamacker/cbor/v2"
-	"github.com/taurusgroup/multi-party-sig/internal/broadcast"
 	"github.com/taurusgroup/multi-party-sig/internal/round"
 	"github.com/taurusgroup/multi-party-sig/pkg/party"
 	"golang.org/x/sync/errgroup"
@@ -43,15 +42,13 @@ func Rounds(rounds []round.Session, rule Rule) (error, bool) {
 		errGroup.Go(func() error {
 			var rNew, rNewReal round.Session
 			if rule != nil {
-				rReal := getRound(r)
-				rule.ModifyBefore(rReal)
+				rule.ModifyBefore(r)
 				outFake := make(chan *round.Message, N+1)
 				rNew, err = r.Finalize(outFake)
 				close(outFake)
-				rNewReal = getRound(rNew)
-				rule.ModifyAfter(rNewReal)
+				rule.ModifyAfter(rNew)
 				for msg := range outFake {
-					rule.ModifyContent(rNewReal, msg.To, getContent(msg.Content))
+					rule.ModifyContent(rNewReal, msg.To, msg.Content)
 					out <- msg
 				}
 			} else {
@@ -141,8 +138,7 @@ func Rounds(rounds []round.Session, rule Rule) (error, bool) {
 func checkAllRoundsSame(rounds []round.Session) (reflect.Type, error) {
 	var t reflect.Type
 	for _, r := range rounds {
-		rReal := getRound(r)
-		t2 := reflect.TypeOf(rReal)
+		t2 := reflect.TypeOf(r)
 		if t == nil {
 			t = t2
 		} else if t != t2 {
@@ -150,24 +146,4 @@ func checkAllRoundsSame(rounds []round.Session) (reflect.Type, error) {
 		}
 	}
 	return t, nil
-}
-
-func getRound(outerRound round.Session) round.Session {
-	switch r := outerRound.(type) {
-	case *broadcast.Round1:
-		return getRound(r.Session)
-	case *broadcast.Round2:
-		return getRound(r.Session)
-	default:
-		return r
-	}
-}
-
-func getContent(outerContent round.Content) round.Content {
-	switch content := outerContent.(type) {
-	case *broadcast.Message2:
-		return getContent(content.Content)
-	default:
-		return content
-	}
 }
